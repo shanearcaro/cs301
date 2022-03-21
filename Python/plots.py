@@ -15,7 +15,6 @@ sm.qqplot(data.area_mean, norm, fit=True, line='45')
 
 plt.show()
 
-
 table = [[45, 55], [55, 45]]
 
 stats, p, dof, expected = chi2_continquency(table)

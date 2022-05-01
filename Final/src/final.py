@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn.utils import resample
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_curve, roc_auc_score
 from sklearn.linear_model import SGDClassifier, LinearRegression, LogisticRegression
 
 # Read the data
@@ -72,21 +72,61 @@ print(values, count)
 # ===============================
 
 # Get feature importance using Random Forest Regression
-model = LogisticRegression(solver='lbfgs', class_weight='balanced', max_iter=10000, warm_start=True).fit(x_distribution_train, y_distribution_train)
-importance = pd.DataFrame(data={
-    'Attribute': x_distribution_train.columns,
-    'Importance': model.coef_[0]
-})
-importance = importance.sort_values(by='Importance', ascending=False)
+# model = LogisticRegression(solver='lbfgs', class_weight='balanced', max_iter=10000, warm_start=True).fit(x_distribution_train, y_distribution_train)
+# importance = pd.DataFrame(data={
+#     'Attribute': x_distribution_train.columns,
+#     'Importance': model.coef_[0]
+# })
+# importance = importance.sort_values(by='Importance', ascending=False)
 
-plt.bar(x=importance['Attribute'], height=importance['Importance'], color='#087E8B')
-plt.title('Feature importance', size=21)
-plt.xticks(rotation='vertical')
-plt.show()
+# plt.bar(x=importance['Attribute'], height=importance['Importance'], color='#087E8B')
+# plt.title('Feature importance', size=21)
+# plt.xticks(rotation='vertical')
+# plt.show()
 
-print(importance)
+# print(importance)
 
 # Significance values change every time because of oversampling and undersampling
 # Don't know how to keep these the same yet
 
+# I'm not exactly sure how to do this statistical significance part Nick. I'm going to leave this up to you and keep working
 
+# ===============================
+#           T A S K # 3          
+# ===============================
+
+# This is a multiclass problem that can be treated as regression
+# Just need 2 different models to classify the features into the three fetal health states
+# Using Statify classifier and RandomForest classifier
+
+# Create stratify classifier
+x_stratify_train, x_stratify_test, y_stratify_train, y_stratify_test = train_test_split(x_distribution, y_distribution, test_size=0.3, stratify=y_distribution)
+model_stratify = SGDClassifier().fit(x_stratify_train, y_stratify_train)
+y_prediction_stratify = model_stratify.predict(x_stratify_test)
+
+# Create Random Forest classifier
+model_stratify_randomforest = RandomForestClassifier().fit(x_stratify_train, y_stratify_train)
+y_predicition_stratify_randomforest = model_stratify_randomforest.predict(x_stratify_test)
+
+# ===============================
+#           T A S K # 4          
+# ===============================
+
+confusionmatrix = confusion_matrix(y_stratify_test, y_prediction_stratify)
+plt.figure(figsize=(15, 8))
+sns.heatmap(confusionmatrix, annot=True)
+plt.show()
+
+confusionmatrix_forest = confusion_matrix(y_stratify_test, y_predicition_stratify_randomforest)
+plt.figure(figsize=(15, 8))
+sns.heatmap(confusionmatrix_forest, annot=True)
+plt.show()
+
+# ===============================
+#           T A S K # 5          
+# ===============================
+
+# Stratify scores
+# print("Area Under ROC:      ", roc_auc_score(y_stratify_test, y_prediction_stratify))
+print("F1 Score:            ", f1_score(y_stratify_test, y_prediction_stratify))
+print("Area Under Precision:", precision_recall_curve(y_stratify_test, y_prediction_stratify))

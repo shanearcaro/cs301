@@ -6,18 +6,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import f_regression
 from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.metrics import auc
 from sklearn.metrics import confusion_matrix, f1_score, precision_recall_curve
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
-from sklearn.feature_selection import f_regression
-from sklearn.metrics import roc_auc_score
-from sklearn.calibration import CalibratedClassifierCV
 
 # Read the data
 data = pd.read_csv('../data/fetal_health-1.csv')
-
 # Three classes: normal, suspect, pathological
 
 # ===============================
@@ -43,7 +44,6 @@ labels = ['Normal', 'Suspect', 'Pathological']
 plt.pie(count, labels=labels, autopct=formatPercentage)
 plt.title('Data Balance Distribution')
 plt.show()
-
 # How to fix imbalanced data? One way is to oversample data
 data_majority1 = data[Y == 1]
 data_minority2 = data[Y == 2]
@@ -122,7 +122,9 @@ y_prediction_stratify_prob = model_proba.predict_proba(x_stratify_test)
 
 # Create Random Forest classifier
 model_stratify_randomforest = RandomForestClassifier().fit(x_stratify_train, y_stratify_train)
-y_predicition_stratify_randomforest = model_stratify_randomforest.predict(x_stratify_test)
+y_prediction_randomforest = model_stratify_randomforest.predict(x_stratify_test)
+model_proba = CalibratedClassifierCV(model_stratify_randomforest, cv="prefit").fit(x_stratify_train, y_stratify_train)
+y_prediction_randomforest_prob = model_proba.predict_proba(x_stratify_test)
 
 # ===============================
 #           T A S K # 4
@@ -133,7 +135,7 @@ plt.figure(figsize=(15, 8))
 sns.heatmap(confusionmatrix, annot=True)
 plt.show()
 
-confusionmatrix_forest = confusion_matrix(y_stratify_test, y_predicition_stratify_randomforest)
+confusionmatrix_forest = confusion_matrix(y_stratify_test, y_prediction_randomforest)
 plt.figure(figsize=(15, 8))
 sns.heatmap(confusionmatrix_forest, annot=True)
 plt.show()
@@ -143,8 +145,47 @@ plt.show()
 # ===============================
 
 # Stratify scores
+print("Stratify\n---------------------")
 print("Area Under ROC:      ", roc_auc_score(y_stratify_test, y_prediction_stratify_prob, multi_class="ovo"))
 print("F1 Score:            ", f1_score(y_stratify_test, y_prediction_stratify, average="weighted"))
-# Should pos_label be 1, 2, or 3?
-# I'm not sure what the 1/2/3 in y_stratify_test represent, but it's gotta be one of those three
-print("Area Under Precision:", precision_recall_curve(y_stratify_test, y_prediction_stratify, pos_label=3))
+precisions, recalls, _ = precision_recall_curve(y_stratify_test, y_prediction_stratify, pos_label=1)
+print("Area Under Precision for {}:".format(labels[0]), auc(recalls, precisions))
+precisions, recalls, _ = precision_recall_curve(y_stratify_test, y_prediction_stratify, pos_label=2)
+print("Area Under Precision for {}:".format(labels[1]), auc(recalls, precisions))
+precisions, recalls, _ = precision_recall_curve(y_stratify_test, y_prediction_stratify, pos_label=3)
+print("Area Under Precision for {}:".format(labels[2]), auc(recalls, precisions))
+
+# Random Forest scores
+print("\nRandom Forest\n---------------------")
+print("Area Under ROC:      ", roc_auc_score(y_stratify_test, y_prediction_randomforest_prob, multi_class="ovo"))
+print("F1 Score:            ", f1_score(y_stratify_test, y_prediction_randomforest, average="weighted"))
+precisions, recalls, _ = precision_recall_curve(y_stratify_test, y_prediction_randomforest, pos_label=1)
+print("Area Under Precision for {}:".format(labels[0]), auc(recalls, precisions))
+precisions, recalls, _ = precision_recall_curve(y_stratify_test, y_prediction_randomforest, pos_label=2)
+print("Area Under Precision for {}:".format(labels[1]), auc(recalls, precisions))
+precisions, recalls, _ = precision_recall_curve(y_stratify_test, y_prediction_randomforest, pos_label=3)
+print("Area Under Precision for {}:".format(labels[2]), auc(recalls, precisions))
+
+from pandas import Series
+
+# ===============================
+#           T A S K # 6
+# ===============================
+y_stratify_test: Series
+km = KMeans(5).fit(x_stratify_test)
+df = pd.DataFrame(data={
+    # These two attributes were the most significant in part two, so why not pick them for clustering?
+    # The assignment doesn't really say how to cluster it, so I picked arbitrarily.
+    "x": x_stratify_test["mean_value_of_short_term_variability"],
+    "y": x_stratify_test["accelerations"],
+    "Clusters": km.labels_
+})
+sns.scatterplot(x="x", y="y", data=df, hue="Clusters", palette="viridis")
+
+km = KMeans(10).fit(x_stratify_test)
+df["Clusters"] = km.labels_
+sns.scatterplot(x="x", y="y", data=df, hue="Clusters", palette="viridis")
+
+km = KMeans(15).fit(x_stratify_test)
+df["Clusters"] = km.labels_
+sns.scatterplot(x="x", y="y", data=df, hue="Clusters", palette="viridis")

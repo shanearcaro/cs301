@@ -2,18 +2,19 @@
 # Date: 4/26/2022
 # Assignment: Final Project
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.utils import resample
+from sklearn.cluster import KMeans
+from sklearn.metrics import roc_auc_score
+from sklearn.feature_selection import f_regression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.metrics import confusion_matrix, f1_score, precision_recall_curve
-from sklearn.model_selection import train_test_split
-from sklearn.utils import resample
-from sklearn.feature_selection import f_regression
-from sklearn.metrics import roc_auc_score
-from sklearn.calibration import CalibratedClassifierCV
 
 # Read the data
 data = pd.read_csv('../data/fetal_health-1.csv')
@@ -91,6 +92,7 @@ importance = pd.DataFrame(data={
     'Importance': model.coef_[0]
 })
 importance = importance.sort_values(by='Importance', ascending=False)[:10]
+print(importance)
 
 plt.bar(x=importance['Attribute'], height=importance['Importance'], color='#087E8B')
 plt.title('Feature importance', size=21)
@@ -148,3 +150,7 @@ print("F1 Score:            ", f1_score(y_stratify_test, y_prediction_stratify, 
 # Should pos_label be 1, 2, or 3?
 # I'm not sure what the 1/2/3 in y_stratify_test represent, but it's gotta be one of those three
 print("Area Under Precision:", precision_recall_curve(y_stratify_test, y_prediction_stratify, pos_label=3))
+
+# ===============================
+#           T A S K # 6
+# ===============================
